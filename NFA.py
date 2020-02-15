@@ -23,7 +23,7 @@ class NFA:
     def run(self, problem_str):
         print("\n=> Running DFA on input ' %s ' " % problem_str)
         
-        current_state = '0'
+        current_state = self.init_state
         for _input in list(problem_str):
             print("Current_state is %s", current_state)
             current_state =\
@@ -36,8 +36,8 @@ class NFA:
         > Sample for the input:
             0,0;1,2;3,3#0,0;0,1;2,3;3,3#1,2#3
         Ex
-        - get e-closure
-        .. e(0) = {0} => A
+        ..get e-closure
+        - e(0) = {0} => A
         - e(0,1) = {0,1,2} => B
         - e(0,2) = {0,2} => C
         - e(0,1,3) = {0,1,2,3} => D
@@ -52,74 +52,132 @@ class NFA:
            E  | F | D
            F  | F | D
         """
+        def dict_trans(trans_pairs, alphabet = [0, 1] ):
+            trans_dict = {}
+            for trans_i in range(len(trans_pairs)):
+                for current_state, next_state in trans_pairs[trans_i]:
+                    trans = trans_dict.get((current_state, alphabet[trans_i]))
+                    if trans is None:
+                        trans_dict[(current_state, alphabet[trans_i])] = []
+                        trans = trans_dict.get((current_state, alphabet[trans_i]))
+                    trans.append(next_state)
+            return trans_dict
+            
 
         def dictionarize(_array, splitter=','):
             _dict = {}
             for t in _array:
                 t = t.split(splitter)
-                _dict[t[0]] = t[1]
+                this_dict = _dict.get(t[0])
+                if this_dict is None:
+                    _dict[t[0]] = []
+                    this_dict = _dict.get(t[0])
+                this_dict.append(t[1])
             return _dict
+
+        def listify(_array, splitter=','):
+            _list = []
+            for t in _array:
+                t = t.split(splitter)
+                _list.append((t[0], t[1]))
+            return _list
 
 
         print("=> About to convert the NFA to DFA")
-        dict_trans_0 = dictionarize(trans_0)
-        dict_trans_1 = dictionarize(trans_1)
-        dict_trans_e = dictionarize(trans_e)
-
-
-
-        states_counter = 0
-        closures = {}
-        current_states = list(dict_trans_0.keys())[0]
-
-        while(True):
-            c = current_states
-            for current_state in current_states:
-                another_c = dict_trans_e.get(current_state)
-                if another_c is not None:
-                    c.append(another_c)
-
-            if tuple(c) in list(closures):
+        alphabet = ['0', '1']
+        trans_0 = listify(trans_0)
+        trans_1 = listify(trans_1)
+        trans_dict = dict_trans([trans_0, trans_1], alphabet=alphabet)
+        
+        dict_e = dictionarize(trans_e)
+        unproc_closures = [['0']]
+        
+        current_big_state_name = 'A'
+        self.init_state = current_big_state_name
+        e_closures = {}
+        big_states = {}
+        while True:
+            
+            if len(unproc_closures) <= 0:
                 break
-
-            closures[tuple(c)] = states_counter
-            states_counter += 1
-            current_states = c
-
-        print('..new states are created according to eps-closures')
+            current_states = unproc_closures.pop()
+            current_possible_e = set(current_states.copy())
+            # print('Current states now are ')
+            # print(current_states)
+            
+            # Loop over current states and discover all possible eps-transitions
+            # These eps-trans, all define the big state closure
+            # TODO consider added state eps-trans
+            for state in current_states:
+                other_possible_e = dict_e.get(state)
+                if other_possible_e is not None:
+                    for possible_e in other_possible_e:
+                        current_possible_e.add(possible_e)
+            
+            current_possible_e = sorted(list(current_possible_e))
+            
+            # Is this closure already created
+            closure = e_closures.get(tuple(current_states))
+            if closure is not None:
+                # Stop if already created
+                continue
+            # Otherwise add it and keep on discovering closures
+            e_closures[tuple(current_states)] = tuple(current_possible_e)
+            big_states[tuple(current_states)] = current_big_state_name
+            current_big_state_name = chr(ord(current_big_state_name) + 1)
+            
+            # Find the possible trans from latest found closure,
+            # to create a new closure
+            next_states = set()
+            for a in alphabet:
+                for state in current_possible_e:
+                    other_next_states = trans_dict.get((state, a))
+                    if other_next_states is not None:
+                        next_states = next_states.union(set(other_next_states))
+                unproc_closure = sorted(list(next_states))
+                # print('unproc_closure')
+                # print('alphabet = ' + a)
+                # print(unproc_closure)
+                unproc_closures.append(unproc_closure)
+                
+        print('..connected new states according to eps-closure')
 
         new_transitions = ""
         new_accepted_states = ""
-        for c in list(closures):
-            all_next_states_0 = set()
-            all_next_states_1 = set()
-            for old_state in c:
-                old_trans_0 = dict_trans_0.get(old_state)
-                old_trans_1 = dict_trans_1.get(old_state)
-                if old_trans_0 is not None:
-                    all_next_states_0.add(old_trans_0)
-                if old_trans_1 is not None:
-                    all_next_states_1.add(old_trans_1)
-            
-            next_state_0 = closures.get(tuple(all_next_states_0))
-            next_state_1 = closures.get(tuple(all_next_states_1))
-
-            current_state = closures.get(c)
+        
+        print('trans_dict')
+        print(trans_dict)
+        print('closures')
+        print(e_closures)
+        print('big_states')
+        print(big_states)
+        
+        for big_state in list(big_states):
+            current_state = big_states.get(big_state)
             new_transitions += str(current_state) + ","
-            if next_state_0 is not None:
-                new_transitions += str(next_state_0)
-            else:
-                new_transitions += '-1'
-            new_transitions += ","
-            if next_state_1 is not None:
-                new_transitions += str(next_state_1)
-            else:
-                new_transitions += '-1'
-            new_transitions += ';'
+            closure = e_closures.get(big_state)
+            for a in alphabet:
+                next_states = set()
+                # print('\nclosure')
+                # print(closure)
+                for old_state in closure:
+                    # print('alphabet with closure trans indexing')
+                    # print((old_state, a))
+                    old_trans = trans_dict.get((old_state, a))
+                    if old_trans is not None:
+                        next_states = next_states.union(set(old_trans))
+                next_states = tuple(sorted(list(next_states)))
+                # print('next_states')
+                # print(next_states)
+                big_next_state = big_states.get(next_states)
+                if big_next_state is not None:
+                    new_transitions += str(big_next_state)
+                else:
+                    new_transitions += '-1'
+                new_transitions += ","
+            new_transitions = new_transitions[:-1] + ';'
 
-            print(set(accepted_states))
-            print(set(c))
-            if len(set(accepted_states).intersection(set(c))) > 0:
+            if len(set(accepted_states).intersection(set(closure))) > 0:
                 new_accepted_states += str(current_state) + ','
         # Dead state transitions
         new_transitions += "-1,-1,-1"
@@ -128,7 +186,7 @@ class NFA:
 
         dfa_description = new_transitions + '#' + new_accepted_states[:-1]
 
-        return dfa_description    
+        return dfa_description
 
     def construct_trans_dict(self, transitions):
         trans_dict = {}
@@ -147,6 +205,8 @@ dfa_description = input("Enter NFA Description please: ")
 
 while dfa_description is None or dfa_description == "":
     dfa_description = input("Choose one sample of {1}: ")
+    for sample in [sample_1]:
+        print("-" + str(sample))
     if dfa_description == "1":
         dfa_description = sample_1
 
