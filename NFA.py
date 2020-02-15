@@ -25,10 +25,10 @@ class NFA:
         
         current_state = self.init_state
         for _input in list(problem_str):
-            print("Current_state is %s", current_state)
+            print("Current_state is %s" % current_state)
             current_state =\
                 self.trans_dict[(current_state, _input)]    
-        print("Current_state is %s", current_state)
+        print("Current_state is %s" % current_state)
         return (current_state in self.accepted_states_list)
 
     def nfa_to_dfa(self, trans_0, trans_1, trans_e, accepted_states):
@@ -82,6 +82,22 @@ class NFA:
                 _list.append((t[0], t[1]))
             return _list
 
+        def get_current_states(current_possible_e):
+            
+            new_possible_e_group = current_possible_e.copy()
+            for state in current_possible_e:
+                other_possible_e = dict_e.get(state)
+                if other_possible_e is not None:
+                    for possible_e in other_possible_e:
+                        new_possible_e_group.add(possible_e)
+            # print('current_possible_e')
+            # print(current_possible_e)
+            if len(current_possible_e) == len(new_possible_e_group):
+                return sorted(list(current_possible_e))
+            else:
+                # print('but new is ')
+                # print(new_possible_e_group)
+                return get_current_states(new_possible_e_group)
 
         print("=> About to convert the NFA to DFA")
         alphabet = ['0', '1']
@@ -107,14 +123,7 @@ class NFA:
             
             # Loop over current states and discover all possible eps-transitions
             # These eps-trans, all define the big state closure
-            # TODO consider added state eps-trans
-            for state in current_states:
-                other_possible_e = dict_e.get(state)
-                if other_possible_e is not None:
-                    for possible_e in other_possible_e:
-                        current_possible_e.add(possible_e)
-            
-            current_possible_e = sorted(list(current_possible_e))
+            current_possible_e = get_current_states(current_possible_e)
             
             # Is this closure already created
             closure = e_closures.get(tuple(current_states))
