@@ -67,6 +67,8 @@ class NFA:
         def dictionarize(_array, splitter=','):
             _dict = {}
             for t in _array:
+                if len(t) <= 0:
+                    continue
                 t = t.split(splitter)
                 this_dict = _dict.get(t[0])
                 if this_dict is None:
@@ -78,6 +80,8 @@ class NFA:
         def listify(_array, splitter=','):
             _list = []
             for t in _array:
+                if len(t) <= 0:
+                    continue
                 t = t.split(splitter)
                 _list.append((t[0], t[1]))
             return _list
@@ -90,13 +94,13 @@ class NFA:
                 if other_possible_e is not None:
                     for possible_e in other_possible_e:
                         new_possible_e_group.add(possible_e)
-            # print('current_possible_e')
-            # print(current_possible_e)
+            print('current_possible_e')
+            print(current_possible_e)
             if len(current_possible_e) == len(new_possible_e_group):
                 return sorted(list(current_possible_e))
             else:
-                # print('but new is ')
-                # print(new_possible_e_group)
+                print('but new is ')
+                print(new_possible_e_group)
                 return get_current_states(new_possible_e_group)
 
         print("=> About to convert the NFA to DFA")
@@ -106,6 +110,8 @@ class NFA:
         trans_dict = dict_trans([trans_0, trans_1], alphabet=alphabet)
         
         dict_e = dictionarize(trans_e)
+        print('dict_e')
+        print(dict_e)
         unproc_closures = [['0']]
         
         current_big_state_name = 'A'
@@ -118,12 +124,18 @@ class NFA:
                 break
             current_states = unproc_closures.pop()
             current_possible_e = set(current_states.copy())
-            # print('Current states now are ')
-            # print(current_states)
-            
+            print('Current states now are ')
+            print(current_states)
+            print('Current possible_e are ')
+            print(current_possible_e)
+                        
             # Loop over current states and discover all possible eps-transitions
             # These eps-trans, all define the big state closure
             current_possible_e = get_current_states(current_possible_e)
+            if len(current_possible_e) <= 0:
+                print('current_possible_e is empty')
+                print(current_possible_e)
+                continue
             
             # Is this closure already created
             closure = e_closures.get(tuple(current_states))
@@ -137,16 +149,16 @@ class NFA:
             
             # Find the possible trans from latest found closure,
             # to create a new closure
-            next_states = set()
             for a in alphabet:
+                next_states = set()
                 for state in current_possible_e:
                     other_next_states = trans_dict.get((state, a))
                     if other_next_states is not None:
                         next_states = next_states.union(set(other_next_states))
                 unproc_closure = sorted(list(next_states))
-                # print('unproc_closure')
-                # print('alphabet = ' + a)
-                # print(unproc_closure)
+                print('unproc_closure')
+                print('alphabet = ' + a)
+                print(unproc_closure)
                 unproc_closures.append(unproc_closure)
                 
         print('..connected new states according to eps-closure')
@@ -208,16 +220,25 @@ class NFA:
         return trans_dict
 
 
-sample_1 = "0,0;1,2;3,3#0,0;0,1;2,3;3,3#1,2#3"
-
+samples = [ "0,0;1,2;3,3#0,0;0,1;2,3;3,3#1,2#3",
+            "0,0;0,1#0,1;1,0##0",
+            "0,1;2,1#0,3;3,2#1,0;3,2#2"]
 dfa_description = input("Enter NFA Description please: ")
 
 while dfa_description is None or dfa_description == "":
-    dfa_description = input("Choose one sample of {1}: ")
-    for sample in [sample_1]:
+    _sample_input_query = "Choose one sample of \n"
+    for i in range(len(samples)):
+        _sample_input_query += str(i+1) + ". "
+        _sample_input_query += samples[i] + "\n"
+    dfa_description = input(_sample_input_query)
+    for sample in samples:
         print("-" + str(sample))
-    if dfa_description == "1":
-        dfa_description = sample_1
+    try:
+        sample_num = int(dfa_description)
+        dfa_description = samples[sample_num -1]
+    except:
+        print("Incorrect input..")
+        break
 
 nfa_sample = NFA(dfa_description, nfa=True)
 
