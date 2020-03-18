@@ -94,13 +94,13 @@ class NFA:
                 if other_possible_e is not None:
                     for possible_e in other_possible_e:
                         new_possible_e_group.add(possible_e)
-            print('current_possible_e')
-            print(current_possible_e)
+            # print('current_possible_e')
+            # print(current_possible_e)
             if len(current_possible_e) == len(new_possible_e_group):
                 return sorted(list(current_possible_e))
             else:
-                print('but new is ')
-                print(new_possible_e_group)
+                # print('but new is ')
+                # print(new_possible_e_group)
                 return get_current_states(new_possible_e_group)
 
         print("=> About to convert the NFA to DFA")
@@ -124,17 +124,17 @@ class NFA:
                 break
             current_states = unproc_closures.pop()
             current_possible_e = set(current_states.copy())
-            print('Current states now are ')
-            print(current_states)
-            print('Current possible_e are ')
-            print(current_possible_e)
+            # print('Current states now are ')
+            # print(current_states)
+            # print('Current possible_e are ')
+            # print(current_possible_e)
                         
             # Loop over current states and discover all possible eps-transitions
             # These eps-trans, all define the big state closure
             current_possible_e = get_current_states(current_possible_e)
             if len(current_possible_e) <= 0:
-                print('current_possible_e is empty')
-                print(current_possible_e)
+                # print('current_possible_e is empty')
+                # print(current_possible_e)
                 continue
             
             # Is this closure already created
@@ -156,9 +156,9 @@ class NFA:
                     if other_next_states is not None:
                         next_states = next_states.union(set(other_next_states))
                 unproc_closure = sorted(list(next_states))
-                print('unproc_closure')
-                print('alphabet = ' + a)
-                print(unproc_closure)
+                # print('unproc_closure')
+                # print('alphabet = ' + a)
+                # print(unproc_closure)
                 unproc_closures.append(unproc_closure)
                 
         print('..connected new states according to eps-closure')
@@ -220,9 +220,21 @@ class NFA:
         return trans_dict
 
 
-samples = [ "0,0;1,2;3,3#0,0;0,1;2,3;3,3#1,2#3",
+samples = [ "0,1;1,2;2,3#0,0;1,1;2,3;3,3#1,0;2,1;3,2#1,2,3",
+            "0,1;1,3;3,3#0,2;2,3;3,3#1,2;3,2#3",
+            "0,0;1,2;3,3#0,0;0,1;2,3;3,3#1,2#3",
             "0,0;0,1#0,1;1,0##0",
             "0,1;2,1#0,3;3,2#1,0;3,2#2"]
+
+sample_inputs = [
+    [
+     "0100", "1111", "01000", "00", "1101100"
+     ],
+    [
+     "0101100", "010101", "111010", "10100", "10101"
+     ]
+    ]
+
 dfa_description = input("Enter NFA Description please: ")
 
 while dfa_description is None or dfa_description == "":
@@ -231,8 +243,7 @@ while dfa_description is None or dfa_description == "":
         _sample_input_query += str(i+1) + ". "
         _sample_input_query += samples[i] + "\n"
     dfa_description = input(_sample_input_query)
-    for sample in samples:
-        print("-" + str(sample))
+    
     try:
         sample_num = int(dfa_description)
         dfa_description = samples[sample_num -1]
@@ -241,6 +252,18 @@ while dfa_description is None or dfa_description == "":
         break
 
 nfa_sample = NFA(dfa_description, nfa=True)
+
+nfa_input_query_sample_or_not = input ("Run samples (y/n): ")
+if nfa_input_query_sample_or_not:
+    sample_num = input("which (1 or 2)?: ")
+    if "1" in sample_num:
+        sample_num = 0
+    else:
+        sample_num = 1
+    print("Running samples: " + str(sample_inputs[sample_num]))
+    for _input in sample_inputs[sample_num]:
+        print(nfa_sample.run(_input))
+        print("Done - " + str(_input))
 
 while(True):
     nfa_input = input("Enter you input: ")
